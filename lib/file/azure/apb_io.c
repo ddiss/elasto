@@ -388,7 +388,7 @@ err_out:
 	return ret;
 }
 
-/* FIXME bad API: the blks list is freed unconditionally */
+/* @blks list is freed on success */
 static int
 abb_fwrite_multi_finish(struct apb_fh *apb_fh,
 			struct elasto_conn *conn,
@@ -397,20 +397,15 @@ abb_fwrite_multi_finish(struct apb_fh *apb_fh,
 {
 	int ret;
 	struct op *op;
+	struct azure_block *blk;
+	struct azure_block *blk_n;
 
 	ret = az_req_block_list_put(apb_fh->path.acc,
 				    apb_fh->path.ctnr,
 				    apb_fh->path.blob,
 				    num_blks, blks, &op);
 	if (ret < 0) {
-		struct azure_block *blk;
-		struct azure_block *blk_n;
-
 		dbg(0, "multi-part done req init failed: %s\n", strerror(-ret));
-		list_for_each_safe(blks, blk, blk_n, list) {
-			free(blk->id);
-			free(blk);
-		}
 		goto err_out;
 	}
 
@@ -421,6 +416,11 @@ abb_fwrite_multi_finish(struct apb_fh *apb_fh,
 	}
 
 	dbg(0, "multipart upload finished\n");
+	list_for_each_safe(blks, blk, blk_n, list) {
+		free(blk->id);
+		free(blk);
+	}
+
 	ret = 0;
 err_op_free:
 	op_free(op);
@@ -500,8 +500,7 @@ abb_fwrite_multi(struct apb_fh *apb_fh,
 
 	ret = abb_fwrite_multi_finish(apb_fh, conn, blk_num, &blks);
 	if (ret < 0) {
-		/* don't abort, as finish frees blks unconditionally */
-		goto err_out;
+		goto err_mp_abort;
 	}
 
 	return 0;
