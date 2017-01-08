@@ -49,6 +49,7 @@ s3_fopen_obj(struct s3_fh *s3_fh,
 	int ret;
 	struct op *op;
 	bool created = false;
+	struct elasto_data *data;
 
 	if (flags & ELASTO_FOPEN_DIRECTORY) {
 		dbg(1, "attempt to open object with directory flag set\n");
@@ -56,7 +57,12 @@ s3_fopen_obj(struct s3_fh *s3_fh,
 		goto err_out;
 	}
 
-	ret = s3_req_obj_head(&s3_fh->path, &op);
+	ret = elasto_data_iov_new(NULL, 1, true, &data);
+	if (ret < 0) {
+		goto err_out;
+	}
+
+	ret = s3_req_obj_get(&s3_fh->path, 0, 1, data, &op);
 	if (ret < 0) {
 		goto err_out;
 	}
@@ -68,7 +74,6 @@ s3_fopen_obj(struct s3_fh *s3_fh,
 		ret = -EEXIST;
 		goto err_op_free;
 	} else if ((ret == -ENOENT) && (flags & ELASTO_FOPEN_CREATE)) {
-		struct elasto_data *data;
 
 		/* put a zero length object */
 		dbg(4, "path not found, creating\n");
