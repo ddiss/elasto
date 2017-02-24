@@ -337,7 +337,14 @@ op_rsp_error_process(struct op *op)
 	assert(op->rsp.err_code != 0);
 
 	if (op->rsp.err_code == HTTP_SERVUNAVAIL) {
-		return -ECONNABORTED;
+		ret = op_req_retry(op);
+		if (ret < 0) {
+			goto err_out;
+		}
+
+		/* ECONNABORTED instructs conn layer to reconnect and resend */
+		ret = -ECONNABORTED;
+		goto err_out;
 	}
 
 	if (op->rsp.err.off == 0) {
@@ -386,7 +393,13 @@ op_rsp_error_process(struct op *op)
 	if (op->rsp.err_code == 307) {
 		dbg(3, "redirect response endpoint: %s\n",
 		    op->rsp.err.redir_endpoint);
-		/* EAGAIN implies resend with redirect */
+
+		ret = op_req_redirect(op);
+		if (ret < 0) {
+			goto err_msg_free;
+		}
+
+		/* EAGAIN instructs conn layer to resend with redirect */
 		ret = -EAGAIN;
 	} else if (got_err_msg) {
 		dbg(0, "got error msg: %s\n", op->rsp.err.msg);

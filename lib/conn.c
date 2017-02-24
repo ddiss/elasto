@@ -923,13 +923,11 @@ conn_op_completion(struct conn_op *conn_op)
 		ret = op->rsp_process(op);
 	}
 	if (ret == -EAGAIN) {
-		/* response is a redirect, resend via new conn */
-		ret = op_req_redirect(op);
-		if (ret < 0) {
-			conn_op_flag_error(conn_op, ret);
-			goto err_ev_break;
-		}
-		/* use original connection as redirect copy source */
+		/*
+		 * Response is a temporary redirect, which has been successfully
+		 * processed (url_host updated, etc) in op->rsp_error_process.
+		 * Resend via new conn using the original as a clone source.
+		 */
 		ret = elasto_conn_redirect_open(conn_op->econn_orig,
 						op->url_host,
 						&conn_op->econn);
@@ -949,16 +947,15 @@ conn_op_completion(struct conn_op *conn_op)
 		}
 		return;
 	} else if (ret == -ECONNABORTED) {
+		/*
+		 * Connection error has been detected in op->rsp_error_process.
+		 * Reconnect and resend.
+		 */
 		dbg(1, "disconnect on send - reconnecting for resend\n");
 		conn_op->econn = conn_op->econn_orig;
 		ret = elasto_conn_ev_connect(conn_op->econn);
 		if (ret < 0) {
 			dbg(0, "reconnect failed\n");
-			conn_op_flag_error(conn_op, ret);
-			goto err_ev_break;
-		}
-		ret = op_req_retry(op);
-		if (ret < 0) {
 			conn_op_flag_error(conn_op, ret);
 			goto err_ev_break;
 		}
