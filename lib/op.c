@@ -321,6 +321,93 @@ op_free(struct op *op)
 }
 
 /*
+ * Remove existing clen and auth hdrs added by conn layer
+ */
+static void
+op_req_dup_hdrs_del(struct op *op)
+{
+	int ret;
+
+	ret = op_req_hdr_del(op, "Content-Length");
+	if (ret < 0) {
+		dbg(0, "no clen for to-be-resent req\n");
+	}
+	if (op->req_sign != NULL) {
+		ret = op_req_hdr_del(op, "Authorization");
+		if (ret < 0) {
+			dbg(0, "no auth header for to-be-resent req\n");
+		}
+	}
+}
+
+#define OP_MAX_REDIRECTS 2
+static int
+op_req_redirect(struct op *op)
+{
+	struct elasto_data *data;
+
+	if (!op->rsp.is_error || (op->rsp.err_code != 307)) {
+		dbg(0, "no redirect response for op\n");
+		return -EINVAL;
+	}
+	if (op->rsp.err.redir_endpoint == NULL) {
+		dbg(0, "no endpoint for redirect\n");
+		return -EFAULT;
+	}
+	if (op->redirects >= OP_MAX_REDIRECTS) {
+		dbg(0, "maximum redirects exceeded: %d\n", op->redirects);
+		return -ELOOP;
+	}
+	op->redirects++;
+
+	dbg(1, "redirecting %d request from %s to %s\n",
+	    op->opcode, op->url_host, op->rsp.err.redir_endpoint);
+	free(op->url_host);
+	op->url_host = op->rsp.err.redir_endpoint;
+	op->rsp.err.redir_endpoint = NULL;
+
+	op_req_dup_hdrs_del(op);
+
+	/* save rsp data buffer */
+	data = op->rsp.data;
+	op->rsp.data = NULL;
+	op_rsp_free(op);
+	memset(&op->rsp, 0, sizeof(op->rsp));
+	list_head_init(&op->rsp.hdrs);
+	op->rsp.data = data;
+
+	return 0;
+}
+
+#define OP_MAX_RETRIES 2
+static int
+op_req_retry(struct op *op)
+{
+	struct elasto_data *data;
+
+	if (op->retries >= OP_MAX_RETRIES) {
+		dbg(0, "maximum retries exceeded: %d\n", op->retries);
+		return -ETIMEDOUT;
+	}
+	op->retries++;
+
+	dbg(1, "retrying %d request on %s\n",
+	    op->opcode, op->url_host);
+
+	op_req_dup_hdrs_del(op);
+
+	/* save rsp data buffer */
+	data = op->rsp.data;
+	op->rsp.data = NULL;
+	op_rsp_free(op);
+	memset(&op->rsp, 0, sizeof(op->rsp));
+	list_head_init(&op->rsp.hdrs);
+	op->rsp.data = data;
+
+	return 0;
+}
+
+/*
  * Process error response and store details in op->rsp.err
  * @return:
  *	-EAGAIN: redirect error, to be handled by the connection layer
@@ -417,93 +504,6 @@ err_xdoc_free:
 	exml_free(xdoc);
 err_out:
 	return ret;
-}
-
-/*
- * Remove existing clen and auth hdrs added by conn layer
- */
-static void
-op_req_dup_hdrs_del(struct op *op)
-{
-	int ret;
-
-	ret = op_req_hdr_del(op, "Content-Length");
-	if (ret < 0) {
-		dbg(0, "no clen for to-be-resent req\n");
-	}
-	if (op->req_sign != NULL) {
-		ret = op_req_hdr_del(op, "Authorization");
-		if (ret < 0) {
-			dbg(0, "no auth header for to-be-resent req\n");
-		}
-	}
-}
-
-#define OP_MAX_REDIRECTS 2
-int
-op_req_redirect(struct op *op)
-{
-	struct elasto_data *data;
-
-	if (!op->rsp.is_error || (op->rsp.err_code != 307)) {
-		dbg(0, "no redirect response for op\n");
-		return -EINVAL;
-	}
-	if (op->rsp.err.redir_endpoint == NULL) {
-		dbg(0, "no endpoint for redirect\n");
-		return -EFAULT;
-	}
-	if (op->redirects >= OP_MAX_REDIRECTS) {
-		dbg(0, "maximum redirects exceeded: %d\n", op->redirects);
-		return -ELOOP;
-	}
-	op->redirects++;
-
-	dbg(1, "redirecting %d request from %s to %s\n",
-	    op->opcode, op->url_host, op->rsp.err.redir_endpoint);
-	free(op->url_host);
-	op->url_host = op->rsp.err.redir_endpoint;
-	op->rsp.err.redir_endpoint = NULL;
-
-	op_req_dup_hdrs_del(op);
-
-	/* save rsp data buffer */
-	data = op->rsp.data;
-	op->rsp.data = NULL;
-	op_rsp_free(op);
-	memset(&op->rsp, 0, sizeof(op->rsp));
-	list_head_init(&op->rsp.hdrs);
-	op->rsp.data = data;
-
-	return 0;
-}
-
-#define OP_MAX_RETRIES 2
-int
-op_req_retry(struct op *op)
-{
-	struct elasto_data *data;
-
-	if (op->retries >= OP_MAX_RETRIES) {
-		dbg(0, "maximum retries exceeded: %d\n", op->retries);
-		return -ETIMEDOUT;
-	}
-	op->retries++;
-
-	dbg(1, "retrying %d request on %s\n",
-	    op->opcode, op->url_host);
-
-	op_req_dup_hdrs_del(op);
-
-	/* save rsp data buffer */
-	data = op->rsp.data;
-	op->rsp.data = NULL;
-	op_rsp_free(op);
-	memset(&op->rsp, 0, sizeof(op->rsp));
-	list_head_init(&op->rsp.hdrs);
-	op->rsp.data = data;
-
-	return 0;
 }
 
 const char *

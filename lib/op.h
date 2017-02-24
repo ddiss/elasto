@@ -121,12 +121,6 @@ bool
 op_rsp_error_match(struct op *op,
 		   int err_code);
 
-int
-op_req_redirect(struct op *op);
-
-int
-op_req_retry(struct op *op);
-
 void
 op_free(struct op *op);
 
