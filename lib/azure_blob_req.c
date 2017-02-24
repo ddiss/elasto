@@ -83,6 +83,7 @@ az_blob_ebo_init(enum az_blob_opcode opcode,
 	ebo->op.req_free = az_blob_req_free;
 	ebo->op.rsp_free = az_blob_rsp_free;
 	ebo->op.rsp_process = az_blob_rsp_process;
+	ebo->op.rsp_error_process = op_rsp_error_process;
 	ebo->op.ebo_free = az_blob_ebo_free;
 	/* sign callback set conditionally per-op */
 	*_ebo = ebo;

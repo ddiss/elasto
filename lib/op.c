@@ -327,7 +327,7 @@ op_free(struct op *op)
  *	-ECONNABORTED: disconnected, to be handled by the connection layer
  *	0: any other error
  */
-static int
+int
 op_rsp_error_process(struct op *op)
 {
 	int ret;
@@ -499,15 +499,12 @@ op_req_retry(struct op *op)
 int
 op_rsp_process(struct op *op)
 {
-	int ret;
-
 	if (op->rsp.is_error) {
 		/* set by conn layer, error response only */
-		return op_rsp_error_process(op);
+		return op->rsp_error_process(op);
 	}
 
-	ret = op->rsp_process(op);
-	return ret;
+	return op->rsp_process(op);
 }
 
 const char *

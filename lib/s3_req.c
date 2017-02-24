@@ -117,6 +117,7 @@ s3_ebo_init(enum s3_opcode opcode,
 	ebo->op.req_free = s3_req_free;
 	ebo->op.rsp_free = s3_rsp_free;
 	ebo->op.rsp_process = s3_rsp_process;
+	ebo->op.rsp_error_process = op_rsp_error_process;
 	ebo->op.ebo_free = s3_ebo_free;
 	*_ebo = ebo;
 	return 0;

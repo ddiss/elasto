@@ -79,6 +79,7 @@ az_mgmt_ebo_init(enum az_mgmt_opcode opcode,
 	ebo->op.req_free = az_mgmt_req_free;
 	ebo->op.rsp_free = az_mgmt_rsp_free;
 	ebo->op.rsp_process = az_mgmt_rsp_process;
+	ebo->op.rsp_error_process = op_rsp_error_process;
 	ebo->op.ebo_free = az_mgmt_ebo_free;
 	/* sign callback set conditionally per-op */
 	*_ebo = ebo;

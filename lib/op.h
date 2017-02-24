@@ -75,6 +75,7 @@ struct op {
 	void (*req_free)(struct op *op);
 	void (*rsp_free)(struct op *op);
 	int (*rsp_process)(struct op *op);
+	int (*rsp_error_process)(struct op *op);
 	void (*ebo_free)(struct op *op);
 };
 
@@ -132,6 +133,10 @@ op_free(struct op *op);
 int
 op_rsp_process(struct op *op);
 
-const char *op_method_str(enum op_req_method method);
+int
+op_rsp_error_process(struct op *op);
+
+const char *
+op_method_str(enum op_req_method method);
 
 #endif /* ifdef _OP_H_ */
