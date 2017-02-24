@@ -903,6 +903,7 @@ static void
 conn_op_completion(struct conn_op *conn_op)
 {
 	int ret;
+	struct op *op = conn_op->op;
 
 	if (conn_op->ev_http != NULL) {
 		/* ev_req is cancelled / freed on error */
@@ -916,17 +917,21 @@ conn_op_completion(struct conn_op *conn_op)
 	}
 	conn_op->econn = NULL;
 
-	ret = op_rsp_process(conn_op->op);
+	if (op->rsp.is_error) {
+		ret = op->rsp_error_process(op);
+	} else {
+		ret = op->rsp_process(op);
+	}
 	if (ret == -EAGAIN) {
 		/* response is a redirect, resend via new conn */
-		ret = op_req_redirect(conn_op->op);
+		ret = op_req_redirect(op);
 		if (ret < 0) {
 			conn_op_flag_error(conn_op, ret);
 			goto err_ev_break;
 		}
 		/* use original connection as redirect copy source */
 		ret = elasto_conn_redirect_open(conn_op->econn_orig,
-						conn_op->op->url_host,
+						op->url_host,
 						&conn_op->econn);
 		if (ret < 0) {
 			conn_op_flag_error(conn_op, ret);
@@ -952,7 +957,7 @@ conn_op_completion(struct conn_op *conn_op)
 			conn_op_flag_error(conn_op, ret);
 			goto err_ev_break;
 		}
-		ret = op_req_retry(conn_op->op);
+		ret = op_req_retry(op);
 		if (ret < 0) {
 			conn_op_flag_error(conn_op, ret);
 			goto err_ev_break;

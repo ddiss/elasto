@@ -493,20 +493,6 @@ op_req_retry(struct op *op)
 	return 0;
 }
 
-/*
- * unmarshall response data
- */
-int
-op_rsp_process(struct op *op)
-{
-	if (op->rsp.is_error) {
-		/* set by conn layer, error response only */
-		return op->rsp_error_process(op);
-	}
-
-	return op->rsp_process(op);
-}
-
 const char *
 op_method_str(enum op_req_method method)
 {

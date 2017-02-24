@@ -131,9 +131,6 @@ void
 op_free(struct op *op);
 
 int
-op_rsp_process(struct op *op);
-
-int
 op_rsp_error_process(struct op *op);
 
 const char *
