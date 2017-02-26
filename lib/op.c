@@ -290,7 +290,9 @@ op_req_free(struct op *op)
 {
 	op_hdrs_free(&op->req.hdrs);
 	elasto_data_free(op->req.data);
-	op->req_free(op);
+	if (op->req_free != NULL) {
+		op->req_free(op);
+	}
 }
 
 static void
@@ -306,7 +308,9 @@ op_rsp_free(struct op *op)
 	}
 
 	free(op->rsp.req_id);
-	op->rsp_free(op);
+	if (op->rsp_free != NULL) {
+		op->rsp_free(op);
+	}
 }
 
 void
@@ -317,7 +321,9 @@ op_free(struct op *op)
 	free(op->url_path);
 	op_req_free(op);
 	op_rsp_free(op);
-	op->ebo_free(op);
+	if (op->ebo_free != NULL) {
+		op->ebo_free(op);
+	}
 }
 
 /*

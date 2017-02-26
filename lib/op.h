@@ -68,14 +68,20 @@ struct op {
 		struct list_head hdrs;
 	} rsp;
 
+	/* optional request signature cb */
 	int (*req_sign)(const char *acc,
 			const uint8_t *key,
 			int key_len,
 			struct op *op);
+	/* optional ebo request free cb */
 	void (*req_free)(struct op *op);
+	/* optional ebo response free cb */
 	void (*rsp_free)(struct op *op);
+	/* optional ebo response process cb */
 	int (*rsp_process)(struct op *op);
+	/* mandatory ebo response process cb */
 	int (*rsp_error_process)(struct op *op);
+	/* optional ebo free cb */
 	void (*ebo_free)(struct op *op);
 };
 

@@ -917,9 +917,11 @@ conn_op_completion(struct conn_op *conn_op)
 	}
 	conn_op->econn = NULL;
 
+	ret = 0;
 	if (op->rsp.is_error) {
+		/* request layer error callback is mandatory */
 		ret = op->rsp_error_process(op);
-	} else {
+	} else if (op->rsp_process != NULL) {
 		ret = op->rsp_process(op);
 	}
 	if (ret == -EAGAIN) {
@@ -1190,6 +1192,13 @@ elasto_conn_op_tx(struct elasto_conn *econn,
 			   cb, cb_arg);
 	assert(ret == 0);
 	event_add(&conn_op->ev_xchng, NULL);
+
+	if (op->rsp_error_process == NULL) {
+		dbg(0, "invalid op 0x%x: missing rsp_error_process callback\n",
+		    op->opcode);
+		conn_op_flag_error(conn_op, -EINVAL);
+		goto err_out;
+	}
 
 	if (strcmp(econn->hostname, op->url_host)) {
 		dbg(0, "invalid connection for op 0x%x: %s != %s\n",
