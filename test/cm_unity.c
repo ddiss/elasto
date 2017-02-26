@@ -229,6 +229,7 @@ main(int argc,
 	cm_az_blob_path_run();
 	cm_az_fs_path_run();
 	cm_s3_path_run();
+	cm_web_path_run();
 	cm_cli_path_run();
 	cm_cli_util_run();
 	cm_file_local_run();
