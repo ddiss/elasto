@@ -35,4 +35,9 @@ def build(bld):
 		  lib=['crypto', 'expat', 'ssl'] + bld.env.LIBEVENT_LIBS,
 		  use=['elasto_req_azure_core'],
 		  includes = '. ..')
+	bld.stlib(source='web_path.c',
+		  target='elasto_req_web',
+		  lib=['crypto', 'expat', 'ssl'] + bld.env.LIBEVENT_LIBS,
+		  use=['elasto_core'],
+		  includes = '. ..')
 	bld.recurse(recurse_subdirs)
