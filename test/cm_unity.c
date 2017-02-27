@@ -118,8 +118,16 @@ cm_unity_state_free(void)
 static void
 cm_unity_usage(const char *progname)
 {
-	printf("Usage: %s [-s Azure publish settings] [-K Azure access key] "
-	       "[-A Azure account] [-k S3 key-duo] [-d debug_level] [-i]\n",
+	printf(
+"Usage: %s [options]\n"
+"Options:\n"
+"-A account:            Azure account\n"
+"-s publish_settings:   Azure PublishSettings file\n"
+"-K access_key:         Azure storage account access key\n"
+"-k s3_user,s3_key:     Amazon S3 key-duo\n"	/* TODO support IAM CSV */
+"-d log_level:          Log debug messages (default: 0)\n"
+"-i                     Insecure, use HTTP where possible "
+"(default: HTTPS only)\n",
 	       progname);
 }
 
