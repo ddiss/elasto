@@ -60,6 +60,7 @@ cm_unity_state_init(void)
 	cm_ustate = malloc(sizeof(*cm_ustate));
 	assert(cm_ustate != NULL);
 	memset(cm_ustate, 0, sizeof(*cm_ustate));
+	cm_ustate->internet_connect = false;
 	cm_ustate->insecure_http = false;
 	cm_ustate->ctnr = strdup("testctnr");
 	assert(cm_ustate->ctnr != NULL);
@@ -115,6 +116,23 @@ cm_unity_state_free(void)
 	free(cm_ustate);
 }
 
+/* run tests that access the internet (Azure/S3) */
+static void
+cm_unit_internet_tests_run(void)
+{
+	assert(cm_ustate->internet_connect);
+	if ((cm_ustate->ps_file == NULL)
+					&& (cm_ustate->az_access_key == NULL)) {
+		printf("skipping Azure cloud IO tests, no credentials "
+		       "provided\n");
+		return;
+	}
+	cm_unity_auth_state_init();
+	cm_file_run();
+	cm_az_fs_req_run();
+	cm_az_blob_req_run();
+}
+
 static void
 cm_unity_usage(const char *progname)
 {
@@ -146,9 +164,12 @@ main(int argc,
 		goto err_out;
 	}
 
-	while ((opt = getopt(argc, argv, "s:K:A:k:d:?i")) != -1) {
+	while ((opt = getopt(argc, argv, "Is:K:A:k:d:?i")) != -1) {
 		char *sep;
 		switch (opt) {
+		case 'I':
+			cm_ustate->internet_connect = true;
+			break;
 		case 's':
 			cm_ustate->ps_file = strdup(optarg);
 			if (cm_ustate->ps_file == NULL) {
@@ -241,15 +262,10 @@ main(int argc,
 	cm_cli_path_run();
 	cm_cli_util_run();
 	cm_file_local_run();
-	if ((cm_ustate->ps_file == NULL)
-					&& (cm_ustate->az_access_key == NULL)) {
-		printf("skipping Azure cloud IO tests, no credentials "
-		       "provided\n");
+	if (cm_ustate->internet_connect) {
+		cm_unit_internet_tests_run();
 	} else {
-		cm_unity_auth_state_init();
-		cm_file_run();
-		cm_az_fs_req_run();
-		cm_az_blob_req_run();
+		printf("skipping all internet connected tests (-I not set)\n");
 	}
 	sign_deinit();
 	ret = 0;

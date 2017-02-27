@@ -20,6 +20,7 @@
  * 409 - The specified container is being deleted. Try operation later.
  */
 struct cm_unity_state {
+	bool internet_connect;
 	char *ps_file;
 	char *az_access_key;
 	char *s3_id;
