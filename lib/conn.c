@@ -296,7 +296,7 @@ ev_write_std(struct op *op,
 
 struct conn_op {
 	struct elasto_conn *econn_orig;
-	bool econn_is_redirect;
+	bool econn_is_tmp_redirect;
 	struct elasto_conn *econn;
 	/* event to track a single http req/rsp exchange */
 	struct evhttp_request *ev_http;
@@ -911,9 +911,9 @@ conn_op_completion(struct conn_op *conn_op)
 		conn_op->ev_http = NULL;
 	}
 
-	if (conn_op->econn_is_redirect) {
+	if (conn_op->econn_is_tmp_redirect) {
 		elasto_conn_redirect_close(conn_op->econn);
-		conn_op->econn_is_redirect = false;
+		conn_op->econn_is_tmp_redirect = false;
 	}
 	conn_op->econn = NULL;
 
@@ -937,12 +937,12 @@ conn_op_completion(struct conn_op *conn_op)
 			conn_op_flag_error(conn_op, ret);
 			goto err_ev_break;
 		}
-		conn_op->econn_is_redirect = true;
+		conn_op->econn_is_tmp_redirect = true;
 		/* reissue without exiting the event loop */
 		ret = conn_op_reissue(conn_op);
 		if (ret < 0) {
 			elasto_conn_redirect_close(conn_op->econn);
-			conn_op->econn_is_redirect = false;
+			conn_op->econn_is_tmp_redirect = false;
 			conn_op->econn = NULL;
 			conn_op_flag_error(conn_op, ret);
 			goto err_ev_break;
@@ -1250,7 +1250,7 @@ err_preped_free:
 		conn_op->ev_http = NULL;
 	}
 err_op_unassoc:
-	if (conn_op->econn_is_redirect) {
+	if (conn_op->econn_is_tmp_redirect) {
 		elasto_conn_redirect_close(conn_op->econn);
 	}
 err_out:
