@@ -15,6 +15,7 @@
 #define _WEB_PATH_H_
 
 struct web_path {
+	bool insecure_http;
 	char *host;
 	char *dl_path;
 };

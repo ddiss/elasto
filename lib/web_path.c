@@ -53,9 +53,17 @@ web_path_parse(const char *path,
 	}
 
 	url_scheme = evhttp_uri_get_scheme(http_uri);
-	if (url_scheme == NULL || (strcasecmp(url_scheme, "https") != 0 &&
-					strcasecmp(url_scheme, "http") != 0)) {
-		dbg(0, "web url must be http or https: %s\n", path);
+	if (url_scheme == NULL) {
+		dbg(0, "missing web url scheme: %s\n", path);
+		ret = -EINVAL;
+		goto err_uri_free;
+	}
+
+	web_path->insecure_http = false;
+	if (strcasecmp(url_scheme, "http") == 0) {
+		web_path->insecure_http = true;
+	} else if (strcasecmp(url_scheme, "https") != 0) {
+		dbg(0, "invalid non-http[s] url scheme: %s\n", path);
 		ret = -EINVAL;
 		goto err_uri_free;
 	}
@@ -130,6 +138,8 @@ web_path_dup(const struct web_path *path_orig,
 		ret = -EINVAL;
 		goto err_out;
 	}
+
+	path_dup->insecure_http = path_orig->insecure_http;
 
 	path_dup->host = strdup(path_orig->host);
 	if (path_dup->host == NULL) {
